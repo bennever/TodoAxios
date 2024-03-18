@@ -1,54 +1,90 @@
 import React, { useState, useEffect } from "react";
+import axios from "axios";
 import "./TodoList.css";
 import Icone from "./assets/icon4.png";
-function TodoList() {
-  const listaStorage = localStorage.getItem("Lista");
 
-  const [lista, setLista] = useState(
-    listaStorage ? JSON.parse(listaStorage) : []
-  );
+function TodoList() {
+  const [lista, setLista] = useState([]);
   const [novoItem, setNovoItem] = useState("");
   const [indiceModificando, setIndiceModificando] = useState(null);
 
   useEffect(() => {
-    localStorage.setItem("Lista", JSON.stringify(lista));
-  }, [lista]);
+    async function fetchData() {
+      try {
+        const response = await axios.get('https://jsonplaceholder.typicode.com/todos');
+        setLista(response.data);
+      } catch (error) {
+        console.error("Erro ao buscar lista de tarefas:", error);
+      }
+    }
+    fetchData();
+  }, []);
 
-  function adicionaItem(form) {
+  async function adicionaItem(form) {
     form.preventDefault();
     if (!novoItem) {
       return;
     }
     if (indiceModificando !== null) {
-      const listaAux = [...lista];
-      listaAux[indiceModificando].text = novoItem; 
-      setLista(listaAux);
-      setIndiceModificando(null); 
+      try {
+        await axios.put(`https://jsonplaceholder.typicode.com/todos/${lista[indiceModificando].id}`, { title: novoItem });
+        const listaAux = [...lista];
+        listaAux[indiceModificando].title = novoItem;
+        setLista(listaAux);
+        setIndiceModificando(null);
+      } catch (error) {
+        console.error("Erro ao modificar tarefa:", error);
+      }
     } else {
-      setLista([...lista, { text: novoItem, isCompleted: false }]);
+      try {
+        const response = await axios.post('https://jsonplaceholder.typicode.com/todos', { title: novoItem, completed: false });
+        setLista([...lista, response.data]);
+        setNovoItem("");
+      } catch (error) {
+        console.error("Erro ao adicionar nova tarefa:", error);
+      }
     }
     setNovoItem("");
     document.getElementById("input-entrada").focus();
   }
-  function clicou(index) {
-    const listaAux = [...lista];
-    listaAux[index].isCompleted = !listaAux[index].isCompleted;
-    setLista(listaAux);
+
+  async function clicou(index) {
+    try {
+      await axios.put(`https://jsonplaceholder.typicode.com/todos/${lista[index].id}`, { completed: !lista[index].completed });
+      const listaAux = [...lista];
+      listaAux[index].completed = !listaAux[index].completed;
+      setLista(listaAux);
+    } catch (error) {
+      console.error("Erro ao atualizar tarefa:", error);
+    }
   }
 
-  function deleta(index) {
-    const listaAux = [...lista];
-    listaAux.splice(index, 1);
-    setLista(listaAux);
+  async function deleta(index) {
+    try {
+      await axios.delete(`https://jsonplaceholder.typicode.com/todos/${lista[index].id}`);  
+      const listaAux = [...lista];
+      listaAux.splice(index, 1);
+      setLista(listaAux);
+    } catch (error) {
+      console.error("Erro ao deletar tarefa:", error);
+    }
   }
 
-  function deletaTudo() {
-    setLista([]);
+  async function deletaTudo() {
+    try {
+      await Promise.all(lista.map(async (item) => {
+        await axios.delete(`https://jsonplaceholder.typicode.com/todos/${item.id}`);
+      }));
+      setLista([]);
+    } catch (error) {
+      console.error("Erro ao deletar todas as tarefas:", error);
+    }
   }
+  
 
   function iniciarModificacao(index) {
-    setNovoItem(lista[index].text); 
-    setIndiceModificando(index); 
+    setNovoItem(lista[index].title);
+    setIndiceModificando(index);
     document.getElementById("input-entrada").focus();
   }
 
@@ -65,7 +101,6 @@ function TodoList() {
           }}
           placeholder="Adicione uma Tarefa"
         />
-
         <button className="add" type="submit">
           Add
         </button>
@@ -73,19 +108,19 @@ function TodoList() {
       <div className="listaTarefas">
         <div style={{ textAlign: "center" }}>
           {lista.length < 1 ? (
-            <img className="icone-central" src={Icone} />
+            <img className="icone-central" src={Icone} alt="Ícone de Lista Vazia" />
           ) : (
             lista.map((item, index) => (
               <div
                 key={index}
-                className={item.isCompleted ? "item completo" : "item"}
+                className={item.completed ? "item completo" : "item"}
               >
                 <span
                   onClick={() => {
                     clicou(index);
                   }}
                 >
-                  {item.text}
+                  {item.title}
                 </span>
                 <button
                   onClick={() => {
