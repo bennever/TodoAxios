@@ -134,6 +134,23 @@ background: #ff004c;
 color: white;
 }
 
+button.edit{
+    background:none;
+    color: #297ea0;
+    border:none;
+    padding: 15px;
+    cursor:pointer;
+}
+
+button.edit:hover{
+    background: #286d4a;
+    color: white;
+    border:none;
+    padding: 15px;
+    cursor:pointer;
+}
+
+
 .icone-central{
     max-width: 100%;
 }
